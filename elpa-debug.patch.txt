@@ -1,0 +1,50 @@
+diff --git a/tools/toolchain/scripts/files/elpa-2019.05.001-fconstants-debug.patch b/tools/toolchain/scripts/files/elpa-2019.05.001-fconstants-debug.patch
+new file mode 100644
+index 000000000..ca46f6774
+--- /dev/null
++++ b/tools/toolchain/scripts/files/elpa-2019.05.001-fconstants-debug.patch
+@@ -0,0 +1,16 @@
++diff --git a/generated_headers.am b/generated_headers.am
++index caf7741..d1eacd7 100644
++--- a/generated_headers.am
+++++ b/generated_headers.am
++@@ -65,9 +65,8 @@ src/elpa_generated_public_fortran_interfaces.h: $(filter-out $(wildcard $(top_sr
++ 
++ generated_headers += src/fortran_constants.F90
++ src/fortran_constants.F90: $(top_srcdir)/src/fortran_constants.h | src
++-	@$(CPP) $(CPPFLAGS) -I$(top_builddir)/ -I$(top_srcdir)/ -I. $< -o $@_ || { rm -f $@; exit 1; }
++-	@awk '/!ELPA_C_DEFINE/ {gsub(/!ELPA_C_DEFINE/, "\n"); gsub(/NEWLINE/, "\n"); print;}' < $@_ > $@ || { rm -f $@; exit 1; }
++-	@rm $@_
+++	$(CPP) $(CPPFLAGS) -I$(top_builddir)/ -I$(top_srcdir)/ -I. $< -o $@_ || { rm -f $@; exit 1; }
+++	awk '/!ELPA_C_DEFINE/ {gsub(/!ELPA_C_DEFINE/, "\n"); gsub(/NEWLINE/, "\n"); print;}' < $@_ > $@ || { rm -f $@; exit 1; }
++ 
++ 
++ generated-headers: $(generated_headers)
+diff --git a/tools/toolchain/scripts/install_elpa.sh b/tools/toolchain/scripts/install_elpa.sh
+index f08d04385..702746309 100755
+--- a/tools/toolchain/scripts/install_elpa.sh
++++ b/tools/toolchain/scripts/install_elpa.sh
+@@ -18,7 +18,10 @@ ELPA_LIBS=''
+ ELPA_CFLAGS_OMP=''
+ ELPA_LIBS_OMP=''
+ # ELPA 2019.05.001 has a parallel build issue, restricting to -j1
+-ELPA_MAKEOPTS='-j1'
++ELPA_MAKEOPTS='-j1 V=1'
++PATCHES=(
++    "files/elpa-2019.05.001-fconstants-debug.patch"
++)
+ 
+ ! [ -d "${BUILDDIR}" ] && mkdir -p "${BUILDDIR}"
+ cd "${BUILDDIR}"
+@@ -60,6 +63,11 @@ case "$with_elpa" in
+             # elpa expect FC to be an mpi fortran compiler that is happy
+             # with long lines, and that a bunch of libs can be found
+             cd elpa-${elpa_ver}
++
++            for patch in "${PATCHES[@]}" ; do
++               patch -p1 < "${SCRIPT_DIR}/${patch}" || ( command -v getenforce >/dev/null && [ $(getenforce) = 'Enforcing' ] && true ) || false
++            done
++
+             # specific settings needed on CRAY Linux Environment
+             if [ "$ENABLE_CRAY" = "__TRUE__" ] ; then
+                 # extra LDFLAGS needed
